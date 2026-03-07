@@ -1,4 +1,4 @@
-type Locale = 'en' | 'zh-CN';
+﻿type Locale = 'en' | 'zh-CN';
 
 const LOCALE_STORAGE_KEY = 'nodewarden.locale';
 
@@ -65,6 +65,7 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_confirm_master_password: "Confirm Master Password",
     txt_confirm_password: "Confirm Password",
     txt_copy: "Copy",
+    txt_code_copied: "Code copied",
     txt_copy_code: "Copy Code",
     txt_copy_link: "Copy Link",
     txt_copy_secret: "Copy Secret",
@@ -153,7 +154,7 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_identity: "Identity",
     txt_identity_details: "Identity Details",
     txt_ie_browser: "IE Browser",
-    txt_invite_code_optional: "Invite Code (Optional)",
+    txt_invite_code_optional: "Invite Code (Not required for the first account; required for all others)",
     txt_invite_created: "Invite created",
     txt_invite_revoked: "Invite revoked",
     txt_invite_validity_hours: "Invite validity (hours)",
@@ -229,6 +230,8 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_no_devices_found: "No devices found.",
     txt_no_folder: "No Folder",
     txt_no_items: "No items",
+    txt_no_username: "(No username)",
+    txt_no_verification_codes: "No verification codes",
     txt_no_name: "(No Name)",
     txt_no_sends: "No sends",
     txt_nodewarden_send: "NodeWarden Send",
@@ -413,6 +416,7 @@ const zhCNOverrides: Record<string, string> = {
   txt_confirm: '确认',
   txt_move: '移动',
   txt_copy: '复制',
+  txt_code_copied: '验证码已复制',
   txt_copy_link: '复制链接',
   txt_select_all: '全选',
   txt_delete_selected: '删除所选',
@@ -423,6 +427,8 @@ const zhCNOverrides: Record<string, string> = {
   txt_folders: '文件夹',
   txt_no_folder: '无文件夹',
   txt_no_items: '没有项目',
+  txt_no_username: '无用户名',
+  txt_no_verification_codes: '没有验证码',
   txt_no_sends: '没有发送',
   txt_select_an_item: '请选择一个项目',
   txt_login: '登录',
@@ -625,7 +631,7 @@ const zhCNOverrides: Record<string, string> = {
   txt_folder_created: '文件夹已创建',
   txt_folder_name_is_required: '文件夹名称不能为空',
   txt_ie_browser: 'IE 浏览器',
-  txt_invite_code_optional: '邀请码（可选）',
+  txt_invite_code_optional: '邀请码（首位注册者无需填写，其他人必填）',
   txt_invite_created: '邀请码已创建',
   txt_invite_revoked: '邀请码已撤销',
   txt_ios: 'iOS',
@@ -909,3 +915,4 @@ export function setLocale(next: Locale): void {
     // ignore storage errors
   }
 }
+

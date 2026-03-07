@@ -314,7 +314,7 @@ function VaultListIcon({ cipher }: { cipher: Cipher }) {
     return (
       <img
         className="list-icon"
-        src={`/icons/${host}/icon.png`}
+        src={`/icons/${host}/icon.png?v=2`}
         alt=""
         loading="lazy"
         onError={() => setErrored(true)}

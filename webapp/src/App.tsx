@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Link, Route, Switch, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpDown, Cloud, Lock, LogOut, Send as SendIcon, Settings as SettingsIcon, Shield, ShieldUser, Vault } from 'lucide-preact';
+import { ArrowUpDown, Cloud, Clock3, KeyRound, Lock, LogOut, Send as SendIcon, Settings as SettingsIcon, Shield, ShieldUser } from 'lucide-preact';
 import AuthViews from '@/components/AuthViews';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ToastHost from '@/components/ToastHost';
@@ -15,6 +15,7 @@ import SecurityDevicesPage from '@/components/SecurityDevicesPage';
 import AdminPage from '@/components/AdminPage';
 import HelpPage from '@/components/HelpPage';
 import ImportPage from '@/components/ImportPage';
+import TotpCodesPage from '@/components/TotpCodesPage';
 import type { ImportAttachmentFile, ImportResultSummary } from '@/components/ImportPage';
 import {
   changeMasterPassword,
@@ -1669,8 +1670,12 @@ export default function App() {
           <div className="app-main">
             <aside className="app-side">
               <Link href="/vault" className={`side-link ${location === '/vault' ? 'active' : ''}`}>
-                <Vault size={16} />
+                <KeyRound size={16} />
                 <span>{t('nav_my_vault')}</span>
+              </Link>
+              <Link href="/vault/totp" className={`side-link ${location === '/vault/totp' ? 'active' : ''}`}>
+                <Clock3 size={16} />
+                <span>{t('txt_verification_code')}</span>
               </Link>
               <Link href="/sends" className={`side-link ${location === '/sends' ? 'active' : ''}`}>
                 <SendIcon size={16} />
@@ -1712,6 +1717,9 @@ export default function App() {
                     onBulkDelete={bulkDeleteSendItems}
                     onNotify={pushToast}
                   />
+                </Route>
+                <Route path="/vault/totp">
+                  <TotpCodesPage ciphers={decryptedCiphers} loading={ciphersQuery.isFetching} onNotify={pushToast} />
                 </Route>
                 <Route path="/vault">
                   <VaultPage

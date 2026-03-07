@@ -142,6 +142,17 @@ function handleNwFavicon(): Response {
   });
 }
 
+const BITWARDEN_DEFAULT_ICON_SHA256 = 'aaa64871332ad5b7d28fe8874efb19c2d9cc2f1e6de75d52b080b438225a0783';
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return bytesToHex(new Uint8Array(digest));
+}
+
 function isValidIconHostname(hostname: string): boolean {
   if (!hostname) return false;
   if (hostname.length > 253) return false;
@@ -192,6 +203,9 @@ async function handleGetIcon(request: Request, env: Env, hostname: string): Prom
 
     if (resp.ok) {
       const body = await resp.arrayBuffer();
+      if (body.byteLength === 500 && (await sha256Hex(body)) === BITWARDEN_DEFAULT_ICON_SHA256) {
+        return new Response(null, { status: 204 });
+      }
       const iconResponse = new Response(body, {
         status: 200,
         headers: {
