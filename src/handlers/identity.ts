@@ -8,7 +8,12 @@ import { isTotpEnabled, verifyTotpToken } from '../utils/totp';
 import { createRefreshToken } from '../utils/jwt';
 import { readAuthRequestDeviceInfo } from '../utils/device';
 import { createRecoveryCode, recoveryCodeEquals } from '../utils/recovery-code';
+import { generateUUID } from '../utils/uuid';
 import { issueSendAccessToken } from './sends';
+import {
+  buildAccountKeys,
+  buildUserDecryptionOptions,
+} from '../utils/user-decryption';
 
 const TWO_FACTOR_REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const TWO_FACTOR_PROVIDER_AUTHENTICATOR = 0;
@@ -223,15 +228,25 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
     }
 
     // Persist device only after successful password + (optional) 2FA verification.
-    if (deviceInfo.deviceIdentifier) {
-      await storage.upsertDevice(user.id, deviceInfo.deviceIdentifier, deviceInfo.deviceName, deviceInfo.deviceType);
+    const deviceSession =
+      deviceInfo.deviceIdentifier
+        ? { identifier: deviceInfo.deviceIdentifier, sessionStamp: generateUUID() }
+        : null;
+    if (deviceSession) {
+      await storage.upsertDevice(
+        user.id,
+        deviceSession.identifier,
+        deviceInfo.deviceName,
+        deviceInfo.deviceType,
+        deviceSession.sessionStamp
+      );
     }
 
     // Successful login - clear failed attempts
     await rateLimit.clearLoginAttempts(loginIdentifier);
 
-    const accessToken = await auth.generateAccessToken(user);
-    const refreshToken = await auth.generateRefreshToken(user.id);
+    const accessToken = await auth.generateAccessToken(user, deviceSession);
+    const refreshToken = await auth.generateRefreshToken(user.id, deviceSession);
 
     const response: TokenResponse = {
       access_token: accessToken,
@@ -241,30 +256,22 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
       ...(trustedTwoFactorTokenToReturn ? { TwoFactorToken: trustedTwoFactorTokenToReturn } : {}),
       Key: user.key,
       PrivateKey: user.privateKey,
+      AccountKeys: buildAccountKeys(user),
+      accountKeys: buildAccountKeys(user),
       Kdf: user.kdfType,
       KdfIterations: user.kdfIterations,
       KdfMemory: user.kdfMemory,
       KdfParallelism: user.kdfParallelism,
       ForcePasswordReset: false,
       ResetMasterPassword: false,
+      MasterPasswordPolicy: {
+        Object: 'masterPasswordPolicy',
+      },
+      ApiUseKeyConnector: false,
       scope: 'api offline_access',
       unofficialServer: true,
-      UserDecryptionOptions: {
-        HasMasterPassword: true,
-        Object: 'userDecryptionOptions',
-        MasterPasswordUnlock: {
-          Kdf: {
-            KdfType: user.kdfType,
-            Iterations: user.kdfIterations,
-            Memory: user.kdfMemory || null,
-            Parallelism: user.kdfParallelism || null,
-          },
-          MasterKeyEncryptedUserKey: user.key,
-          MasterKeyWrappedUserKey: user.key,
-          Salt: email, // email is already lowercased above
-          Object: 'masterPasswordUnlock',
-        },
-      },
+      UserDecryptionOptions: buildUserDecryptionOptions(user),
+      userDecryptionOptions: buildUserDecryptionOptions(user),
     };
 
     return jsonResponse(response);
@@ -350,8 +357,8 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
       Date.now() + LIMITS.auth.refreshTokenOverlapGraceMs
     );
 
-    const { accessToken, user } = result;
-    const newRefreshToken = await auth.generateRefreshToken(user.id);
+    const { accessToken, user, device } = result;
+    const newRefreshToken = await auth.generateRefreshToken(user.id, device);
 
     const response: TokenResponse = {
       access_token: accessToken,
@@ -360,30 +367,22 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
       refresh_token: newRefreshToken,
       Key: user.key,
       PrivateKey: user.privateKey,
+      AccountKeys: buildAccountKeys(user),
+      accountKeys: buildAccountKeys(user),
       Kdf: user.kdfType,
       KdfIterations: user.kdfIterations,
       KdfMemory: user.kdfMemory,
       KdfParallelism: user.kdfParallelism,
       ForcePasswordReset: false,
       ResetMasterPassword: false,
+      MasterPasswordPolicy: {
+        Object: 'masterPasswordPolicy',
+      },
+      ApiUseKeyConnector: false,
       scope: 'api offline_access',
       unofficialServer: true,
-      UserDecryptionOptions: {
-        HasMasterPassword: true,
-        Object: 'userDecryptionOptions',
-        MasterPasswordUnlock: {
-          Kdf: {
-            KdfType: user.kdfType,
-            Iterations: user.kdfIterations,
-            Memory: user.kdfMemory || null,
-            Parallelism: user.kdfParallelism || null,
-          },
-          MasterKeyEncryptedUserKey: user.key,
-          MasterKeyWrappedUserKey: user.key,
-          Salt: user.email.toLowerCase(),
-          Object: 'masterPasswordUnlock',
-        },
-      },
+      UserDecryptionOptions: buildUserDecryptionOptions(user),
+      userDecryptionOptions: buildUserDecryptionOptions(user),
     };
 
     return jsonResponse(response);
